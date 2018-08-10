@@ -16,7 +16,7 @@ E veja a versão da OpenCV. Deverá ser maior que 3.
 Leia os seguintes exemplos:
 
 - Exemplo de transformada de Hough para deteção de círculos [draw_circles_video.py](draw_circles_video.py)
-- Exemplo de deteção de features e encontro de correspondências: [py_feature_ homography.py](py_feature_ homography.py)
+- Exemplo de deteção de features e encontro de correspondências: [py_feature_homography.py](py_feature_homography.py)
 - Exemplo de transformada de Hough para deteção de linhas (não vai ser usado): [houghlines.py](houghlines.py)
 
 ## O que deve ser feito
