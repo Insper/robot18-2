@@ -1,5 +1,9 @@
 # Atividade 3 de visão
 
+## Orientações sobre integridade intelectual
+
+<font color='red'>ATENÇÃO: </font> tenham sempre em mente as [orientações do Insper sobre integridade intelectual em atividades de programação](https://tinyurl.com/comp-insper-atividades).
+
 ## Verificação prévia
 
 Rode no prompt Python:

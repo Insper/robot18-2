@@ -1,4 +1,10 @@
 #-*- coding:utf-8 -*-
+#####################################################################
+# ATENÇÃO: tenham sempre em mente as orientações do Insper sobre    #
+# integridade intelectual em atividades de programação:             #
+# https://tinyurl.com/comp-insper-atividades.                       #
+#####################################################################
+
 import cv2
 
 cap = cv2.VideoCapture('hall_box_battery_1024.mp4')
