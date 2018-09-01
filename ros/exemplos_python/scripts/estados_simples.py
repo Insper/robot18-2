@@ -15,32 +15,33 @@ import smach
 import smach_ros
 
 
-limite = 200
-ang_speed = 0.2
+LIMITE = 200
+ANG_SPEED = 0.2
 
 ## Classes - estados
 """
 Classe simples - estado que gira até o limite depois termina
 """
 class Girando(smach.State):
-	def __init__(self):
+	def __init__(self, velocidade_saida):
 		smach.State.__init__(self, outcomes=['fim', 'girando'])
 		self.numero_voltas = 0
+		self.velocidade_saida = velocidade_saida
+
 	def execute(self, userdata):
 		self.numero_voltas +=1 
-		if self.numero_voltas < limite:
-			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, -ang_speed))
-			velocidade_saida.publish(vel)
+		if self.numero_voltas < LIMITE:
+			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, -ANG_SPEED))
+			self.velocidade_saida.publish(vel)
 			return 'girando'
 		else:
 			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0))
-			velocidade_saida.publish(vel)
+			self.velocidade_saida.publish(vel)
 			return 'fim'
 
 
 # main
 def main():
-	global velocidade_saida
 	rospy.init_node('unico_estado')
 
 	velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
@@ -50,7 +51,7 @@ def main():
 
 	# Preenche a Smach com os estados
 	with sm:
-	    smach.StateMachine.add('GIRANDO', Girando(),
+	    smach.StateMachine.add('GIRANDO', Girando(velocidade_saida),
 	    	transitions={'girando': 'GIRANDO',
 	    	'fim':'fim_geral'})
 

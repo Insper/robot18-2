@@ -15,73 +15,44 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Image, CompressedImage
 from cv_bridge import CvBridge, CvBridgeError
 import cormodule
+import cameramodule
 
 
-bridge = CvBridge()
+class CorNode(cameramodule.CameraNode):
+	def __init__(self, use_webcam=False, check_delay=True, debug=False):
+		super(CorNode, self).__init__(use_webcam, check_delay, debug)
+		self.media = []
+		self.centro = []
+		self.area = 0.0 # Variavel com a area do maior contorno
 
-cv_image = None
-media = []
-centro = []
-atraso = 1.5E9 # 1 segundo e meio. Em nanossegundos
-
-area = 0.0 # Variavel com a area do maior contorno
-
-check_delay = False # Só usar se os relógios ROS da Raspberry e do Linux desktop estiverem sincronizados. Descarta imagens que chegam atrasadas demais
-
-
-
-
-
-def roda_todo_frame(imagem):
-	print("frame")
-	global cv_image
-	global media
-	global centro
-
-	now = rospy.get_rostime()
-	imgtime = imagem.header.stamp
-	lag = now-imgtime
-	delay = lag.nsecs
-	print("delay ", "{:.3f}".format(delay/1.0E9))
-	if delay > atraso and check_delay==True:
-		print("Descartando por causa do delay do frame:", delay)
-		return 
-	try:
-		antes = time.clock()
-		cv_image = bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
-		media, centro, area =  cormodule.identifica_cor(cv_image)
-		depois = time.clock()
-		cv2.imshow("Camera", cv_image)
-	except CvBridgeError as e:
-		print('ex', e)
+	def processa_frame(self, frame):
+		self.media, self.centro, self.area = cormodule.identifica_cor(frame, self.debug)
 	
+	def media_encontrada(self):
+		return self.media is not None and len(self.media) != 0 and self.centro is not None and len(self.centro) != 0
+	
+	def dif_x(self):
+		if self.media_encontrada():
+			return self.media[0] - self.centro[0]
+		return None
+	
+	def dif_y(self):
+		if self.media_encontrada():
+			return self.media[1] - self.centro[1]
+		return None
 
 
 if __name__=="__main__":
-
-	rospy.init_node("cor")
-
-	# Para usar a Raspberry Pi
-	topico_raspberry_camera = "/raspicam_node/image/compressed"
-	# Para usar a webcam 
-	topico_webcam = "/cv_camera/image_raw/compressed"
-
-
-	topico_imagem = topico_raspberry_camera
-
-	recebedor = rospy.Subscriber(topico_imagem, CompressedImage, roda_todo_frame, queue_size=4, buff_size = 2**24)
-	print("Usando ", topico_imagem)
-
+	cor_node = CorNode()
 	velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
 
 	try:
-
 		while not rospy.is_shutdown():
 			vel = Twist(Vector3(0,0,0), Vector3(0,0,0))
-			if len(media) != 0 and len(centro) != 0:
-				dif_x = media[0]-centro[0]
-				dif_y = media[1]-centro[1]
-				if math.fabs(dif_x)<30: # Se a media estiver muito proxima do centro anda para frente
+			if cor_node.media_encontrada():
+				dif_x = cor_node.dif_x()
+				dif_y = cor_node.dif_y()
+				if math.fabs(dif_x) < 30:  # Se a media estiver muito proxima do centro anda para frente
 					vel = Twist(Vector3(0.5,0,0), Vector3(0,0,0))
 				else:
 					if dif_x > 0: # Vira a direita

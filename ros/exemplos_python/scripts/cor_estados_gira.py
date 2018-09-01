@@ -13,117 +13,66 @@ import time
 from geometry_msgs.msg import Twist, Vector3, Pose
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Image, CompressedImage
-from cv_bridge import CvBridge, CvBridgeError
 import smach
 import smach_ros
 
-import cormodule
-
-bridge = CvBridge()
-
-cv_image = None
-
-# Variáveis para permitir que o roda_todo_frame troque dados com a máquina de estados
-media = []
-centro = []
-area = 0.0
+from cor import CorNode
 
 
-
-tolerancia_x = 50
-tolerancia_y = 20
-ang_speed = 0.4
-area_ideal = 60000 # área da distancia ideal do contorno - note que varia com a resolução da câmera
-tolerancia_area = 20000
-
-# Atraso máximo permitido entre a imagem sair do Turbletbot3 e chegar no laptop do aluno
-atraso = 1.5
-check_delay = False # Só usar se os relógios ROS da Raspberry e do Linux desktop estiverem sincronizados
-
-
-
-
-def roda_todo_frame(imagem):
-	print("frame")
-	global cv_image
-	global media
-	global centro
-	global area
-
-	now = rospy.get_rostime()
-	imgtime = imagem.header.stamp
-	lag = now-imgtime
-	delay = lag.secs
-	if delay > atraso and check_delay==True:
-		return 
-	try:
-		antes = time.clock()
-		cv_image = bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
-		media, centro, area = cormodule.identifica_cor(cv_image)
-		depois = time.clock()
-		cv2.imshow("Camera", cv_image)
-	except CvBridgeError as e:
-		print('ex', e)
-	
-
-
-
+TOLERANCIA_X = 50
+ANG_SPEED = 0.4
 
 
 ## Classes - estados
-
-
 class Girando(smach.State):
-    def __init__(self):
+    def __init__(self, cor_node, velocidade_saida):
         smach.State.__init__(self, outcomes=['alinhou', 'girando'])
+		self.cor_node = cor_node
+		self.velocidade_saida = velocidade_saida
 
     def execute(self, userdata):
-		global velocidade_saida
-
-		if media is None or len(media)==0:
+		dif_x = self.cor_node.dif_x()
+		if dif_x is None:
 			return 'girando'
 
-		if  math.fabs(media[0]) > math.fabs(centro[0] + tolerancia_x):
-			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, -ang_speed))
-			velocidade_saida.publish(vel)
+		if  dif_x > TOLERANCIA_X:
+			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, -ANG_SPEED))
+			self.velocidade_saida.publish(vel)
 			return 'girando'
-		if math.fabs(media[0]) < math.fabs(centro[0] - tolerancia_x):
-			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, ang_speed))
-			velocidade_saida.publish(vel)
+		if dif_x < -TOLERANCIA_X:
+			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, ANG_SPEED))
+			self.velocidade_saida.publish(vel)
 			return 'girando'
 		else:
 			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0))
-			velocidade_saida.publish(vel)
+			self.velocidade_saida.publish(vel)
 			return 'alinhou'
 
 
 class Centralizado(smach.State):
-    def __init__(self):
+    def __init__(self, cor_node, velocidade_saida):
         smach.State.__init__(self, outcomes=['alinhando', 'alinhado'])
+		self.cor_node = cor_node
+		self.velocidade_saida = velocidade_saida
 
     def execute(self, userdata):
-		global velocidade_saida
-
-		if media is None:
-			return 'alinhou'
-		if  math.fabs(media[0]) > math.fabs(centro[0] + tolerancia_x):
+		dif_x = self.cor_node.dif_x()
+		if dif_x is None:
+			return 'alinhado'
+		if  dif_x > TOLERANCIA_X:
 			return 'alinhando'
-		if math.fabs(media[0]) < math.fabs(centro[0] - tolerancia_x):
+		if dif_x < -TOLERANCIA_X:
 			return 'alinhando'
 		else:
 			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0))
-			velocidade_saida.publish(vel)
+			self.velocidade_saida.publish(vel)
 			return 'alinhado'
+
 
 # main
 def main():
-	global velocidade_saida
-	global buffer
+	cor_node = CorNode()
 	rospy.init_node('cor_estados')
-
-	# Para usar a webcam 
-	#recebedor = rospy.Subscriber("/cv_camera/image_raw/compressed", CompressedImage, roda_todo_frame, queue_size=1, buff_size = 2**24)
-	recebedor = rospy.Subscriber("/raspicam_node/image/compressed", CompressedImage, roda_todo_frame, queue_size=10, buff_size = 2**24)
 
 	velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
 
@@ -133,15 +82,10 @@ def main():
 	# Open the container
 	with sm:
 	    # Add states to the container
-	    #smach.StateMachine.add('LONGE', Longe(), 
-	    #                       transitions={'ainda_longe':'ANDANDO', 
-	    #                                    'perto':'terminei'})
-	    #smach.StateMachine.add('ANDANDO', Andando(), 
-	    #                       transitions={'ainda_longe':'LONGE'})
-	    smach.StateMachine.add('GIRANDO', Girando(),
+	    smach.StateMachine.add('GIRANDO', Girando(cor_node, velocidade_saida),
 	                            transitions={'girando': 'GIRANDO',
 	                            'alinhou':'CENTRO'})
-	    smach.StateMachine.add('CENTRO', Centralizado(),
+	    smach.StateMachine.add('CENTRO', Centralizado(cor_node, velocidade_saida),
 	                            transitions={'alinhando': 'GIRANDO',
 	                            'alinhado':'CENTRO'})
 
