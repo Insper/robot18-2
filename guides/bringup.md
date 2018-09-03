@@ -90,7 +90,7 @@ Certifique-se de que todo o software do Turtlebot e do curso está atualizado:
 	git pull
 	cd ../turtlebot3_simulations
 	git pull
-	cd ../robot18
+	cd ../robot18-2
 	git pull
 	cd ~/catkin_ws
 	catkin_make
