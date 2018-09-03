@@ -31,7 +31,7 @@ class CameraNode(object):
 
     	# Para usar a Raspberry Pi
 	    topico_raspberry_camera = "/raspicam_node/image/compressed"
-        # Para usar a webcam 
+        # Para usar a webcam
         topico_webcam = "/cv_camera/image_raw/compressed"
 
     	topico_imagem = topico_raspberry_camera
@@ -42,9 +42,6 @@ class CameraNode(object):
 	    print("Usando ", topico_imagem)
 
     def roda_todo_frame(self, imagem):
-        global media
-        global centro
-
         now = rospy.get_rostime()
         imgtime = imagem.header.stamp
         lag = now-imgtime
@@ -52,13 +49,13 @@ class CameraNode(object):
         print("Delay ", "{:.3f}".format(delay/1.0E9))
         if delay > self.atraso and self.check_delay==True:
             print("Descartando por causa do delay do frame:", delay)
-            return 
+            return
         try:
             antes = time.clock()
             self.cv_image = bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
             if self.debug:
                 self.debug_image = self.cv_image.copy()
-            
+
             self.processa_frame(self.cv_image)
 
             depois = time.clock()
@@ -68,7 +65,7 @@ class CameraNode(object):
                 cv2.imshow("Debug", self.debug_image)
         except CvBridgeError as e:
             print('ex', e)
-    
+
     def processa_frame(self, frame):
         '''
         Recebe uma imagem do OpenCV e realiza o processamento necessário.
