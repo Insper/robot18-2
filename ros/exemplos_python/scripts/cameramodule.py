@@ -27,19 +27,19 @@ class CameraNode(object):
         self.check_delay = check_delay  # Só usar se os relógios ROS da Raspberry e do Linux desktop estiverem sincronizados. Descarta imagens que chegam atrasadas demais
 
         # Inicializa nó do ROS
-    	rospy.init_node("cor")
+        rospy.init_node("cor")
 
-    	# Para usar a Raspberry Pi
-	    topico_raspberry_camera = "/raspicam_node/image/compressed"
+        # Para usar a Raspberry Pi
+        topico_raspberry_camera = "/raspicam_node/image/compressed"
         # Para usar a webcam
         topico_webcam = "/cv_camera/image_raw/compressed"
 
-    	topico_imagem = topico_raspberry_camera
+        topico_imagem = topico_raspberry_camera
         if use_webcam:
             topico_imagem = topico_webcam
 
-    	self.recebedor = rospy.Subscriber(topico_imagem, CompressedImage, self.roda_todo_frame, queue_size=4, buff_size = 2**24)
-	    print("Usando ", topico_imagem)
+        self.recebedor = rospy.Subscriber(topico_imagem, CompressedImage, self.roda_todo_frame, queue_size=4, buff_size = 2**24)
+        print("Usando ", topico_imagem)
 
     def roda_todo_frame(self, imagem):
         now = rospy.get_rostime()
@@ -52,7 +52,7 @@ class CameraNode(object):
             return
         try:
             antes = time.clock()
-            self.cv_image = bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
+            self.cv_image = self.bridge.compressed_imgmsg_to_cv2(imagem, "bgr8")
             if self.debug:
                 self.debug_image = self.cv_image.copy()
 
@@ -63,6 +63,7 @@ class CameraNode(object):
             cv2.imshow("Camera", self.cv_image)
             if self.debug:
                 cv2.imshow("Debug", self.debug_image)
+            cv2.waitKey(1)
         except CvBridgeError as e:
             print('ex', e)
 

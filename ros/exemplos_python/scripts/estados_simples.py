@@ -23,44 +23,44 @@ ANG_SPEED = 0.2
 Classe simples - estado que gira até o limite depois termina
 """
 class Girando(smach.State):
-	def __init__(self, velocidade_saida):
-		smach.State.__init__(self, outcomes=['fim', 'girando'])
-		self.numero_voltas = 0
-		self.velocidade_saida = velocidade_saida
+    def __init__(self, velocidade_saida):
+        smach.State.__init__(self, outcomes=['fim', 'girando'])
+        self.numero_voltas = 0
+        self.velocidade_saida = velocidade_saida
 
-	def execute(self, userdata):
-		self.numero_voltas +=1 
-		if self.numero_voltas < LIMITE:
-			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, -ANG_SPEED))
-			self.velocidade_saida.publish(vel)
-			return 'girando'
-		else:
-			vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0))
-			self.velocidade_saida.publish(vel)
-			return 'fim'
+    def execute(self, userdata):
+        self.numero_voltas +=1
+        if self.numero_voltas < LIMITE:
+            vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, -ANG_SPEED))
+            self.velocidade_saida.publish(vel)
+            return 'girando'
+        else:
+            vel = Twist(Vector3(0, 0, 0), Vector3(0, 0, 0))
+            self.velocidade_saida.publish(vel)
+            return 'fim'
 
 
 # main
 def main():
-	rospy.init_node('unico_estado')
+    rospy.init_node('unico_estado')
 
-	velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
+    velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
 
-	# Cria uma máquina de estados
-	sm = smach.StateMachine(outcomes=['fim_geral'])
+    # Cria uma máquina de estados
+    sm = smach.StateMachine(outcomes=['fim_geral'])
 
-	# Preenche a Smach com os estados
-	with sm:
-	    smach.StateMachine.add('GIRANDO', Girando(velocidade_saida),
-	    	transitions={'girando': 'GIRANDO',
-	    	'fim':'fim_geral'})
+    # Preenche a Smach com os estados
+    with sm:
+        smach.StateMachine.add('GIRANDO', Girando(velocidade_saida),
+            transitions={'girando': 'GIRANDO',
+            'fim':'fim_geral'})
 
-	# Executa a máquina de estados
-	outcome = sm.execute()
+    # Executa a máquina de estados
+    outcome = sm.execute()
 
-	print("Execute finished")
+    print("Execute finished")
 
 
 if __name__ == '__main__':
-	print("Main")
-	main()
+    print("Main")
+    main()
