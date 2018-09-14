@@ -43,6 +43,9 @@ class CorNode(cameramodule.CameraNode):
 
 
 if __name__=="__main__":
+    # Inicializa nó do ROS
+    rospy.init_node("cor")
+
     cor_node = CorNode()
     velocidade_saida = rospy.Publisher("/cmd_vel", Twist, queue_size = 1)
 

@@ -26,9 +26,6 @@ class CameraNode(object):
         self.atraso = 1.5E9  # 1 segundo e meio. Em nanossegundos
         self.check_delay = check_delay  # Só usar se os relógios ROS da Raspberry e do Linux desktop estiverem sincronizados. Descarta imagens que chegam atrasadas demais
 
-        # Inicializa nó do ROS
-        rospy.init_node("cor")
-
         # Para usar a Raspberry Pi
         topico_raspberry_camera = "/raspicam_node/image/compressed"
         # Para usar a webcam
