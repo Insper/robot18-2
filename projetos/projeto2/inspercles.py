@@ -11,6 +11,7 @@ import rayline
 import cv2
 from intersection.intersection import find_intersections
 from intersection.segment import Segment
+from occupancy_field_numpy import OccupancyField
 from time import time
 
 
@@ -35,6 +36,9 @@ colors     = ['red', 'green', 'cyan', 'yellow']
 color_image = cv2.imread("sparse_obstacles.png")
 pil_image = color_image
 np_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
+
+# Aplica transformada de distância
+occupancy_field = OccupancyField(color_image)
 
 lidar_map = None
 
@@ -342,7 +346,7 @@ def nb_create_particles(pose, var_x = 50, var_y = 50, var_theta = math.pi/3, num
     s = pose
     for i in range(num):
         x = random.uniform(s[0] - var_x, s[0] + var_x)
-        y = random.uniform(s[1] - var_x, s[1] + var_y)
+        y = random.uniform(s[1] - var_y, s[1] + var_y)
         theta = random.uniform(s[2] - var_theta, s[2] + var_theta)
         p = Particle(x, y, theta, w=1.0) # A prob. w vai ser normalizada depois
         particle_cloud.append(p)
@@ -550,7 +554,7 @@ def make_directions(particle, angles):
         in map coordinate frame
     """
     absolute_angles = [particle.theta + angle for angle in angles]
-    normed = np.array([(math.cos(a), math.sin(a)) for a in absolute_angles])
+    normed = np.array([(math.cos(a), math.sin(a)) for a in absolute_angles]).reshape((-1, 2))
     return normed
 
 
@@ -561,19 +565,26 @@ def nb_lidar_old(particle, angles):
     leituras, temp = nb_simulate_lidar_fast(particle.pose(), angles, np_image, output_image=False)
     return leituras
 
-def nb_lidar(particle, angles, lines = lines):
+def nb_lidar(particle, angles, lines = lines, fast=False, occupancy_field=occupancy_field):
     directions = make_directions(particle, angles)
-    origin = (particle.x, particle.y)
-    interpoints = closest_intersections(origin, directions, lines)
-    dists = []
-    for p in interpoints:
-        if p is None:
-            dist = float('inf')
-        else:
-            dist = math.sqrt((p[0]-origin[0])**2 + (p[1] - origin[1])**2)
-        dists.append(dist)
-    readings= dict(zip(angles, dists))
-    return readings
+    if fast:
+        sensor_radius = 5
+        sensors = (directions * sensor_radius).astype(np.uint8)
+        dists = occupancy_field.closest_occ[sensors[:,0], sensors[:,1]]
+        readings = dict(zip(angles, dists))
+        return readings
+    else:
+        origin = (particle.x, particle.y)
+        interpoints = closest_intersections(origin, directions, lines)
+        dists = []
+        for p in interpoints:
+            if p is None:
+                dist = float('inf')
+            else:
+                dist = math.sqrt((p[0]-origin[0])**2 + (p[1] - origin[1])**2)
+            dists.append(dist)
+        readings= dict(zip(angles, dists))
+        return readings
 
 
 def closest_intersections(origin, directions, segments):
