@@ -62,28 +62,28 @@ map_name = 'sparse_obstacles'
 img = cv2.imread(map_name + '.png')
 with open(map_name + '_lines.txt', 'r') as f:
     segments = np.array([[float(j) for j in line.split()] for line in f])
-    
+
 minLineLength = img.shape[1]/45
 
-    
+
 lines = segments
 
 
 if lines is None:
     lines = canny_lines(img)
-        
-        
+
+
 #print("\t\tLINES:\n")s
 #print(lines)
 
 def make_vecs(xs, ys):
     '''
     Creates 2D numpy array from two 1D arrays.
-    
+
     Args:
         xs (nx1 numpy array): x coordinates array
         ys (nx1 numpy array): y coordinates array
-    
+
     Returns:
         vecs (nx2 numpy array): combined array
     '''
@@ -93,11 +93,11 @@ def make_vecs(xs, ys):
 def make_3d_vecs(xs, ys):
     '''
     Creates 3D numpy array from two 2D arrays.
-    
+
     Args:
         xs (nxm numpy array): x coordinates array
         ys (nxm numpy array): y coordinates array
-    
+
     Returns:
         vecs (nxmx2 numpy array): combined array
     '''
@@ -107,10 +107,10 @@ def make_3d_vecs(xs, ys):
 def compute_norms(vecs):
     '''
     Compute norm of 2D vectors.
-        
+
     Args:
         vecs (nx2 numpy array): array with 2D vectors
-    
+
     Returns:
         norms (nx1 numpy array): vector norms
     '''
@@ -120,10 +120,10 @@ def compute_norms(vecs):
 def vert(v):
     '''
     Transform v into vertical array.
-    
+
     Args:
         v (numpy array): array to be transformed
-    
+
     Returns:
         vertical (nx1 numpy array): transformed array
     '''
@@ -133,10 +133,10 @@ def vert(v):
 def hor(v):
     '''
     Transform v into horizontal array.
-    
+
     Args:
         v (numpy array): array to be transformed
-    
+
     Returns:
         horizontal (1xn numpy array): transformed array
     '''
@@ -146,13 +146,13 @@ def hor(v):
 def are_parallel(seg_directs, directions):
     '''
     Checks if seg_directs and directions are parallel.
-    
+
     Args:
-        seg_directs (nx2 numpy array): segment directions computed by subtracting one end point 
+        seg_directs (nx2 numpy array): segment directions computed by subtracting one end point
             by the other directions (mx2 numpy array): direction vectors
-    
+
     Returns:
-        parallel (nxm numpy array): parallel[i,j] is True if segment direction i is parallel 
+        parallel (nxm numpy array): parallel[i,j] is True if segment direction i is parallel
             to direction j
     '''
     norms = compute_norms(seg_directs)
@@ -161,20 +161,20 @@ def are_parallel(seg_directs, directions):
     dy = hor(directions[:,1])
     return (np.abs((vert(seg_directs[:,0])-dx) < EPS) & (np.abs(vert(seg_directs[:,1])-dy) < EPS)) | \
            (np.abs((vert(seg_directs[:,0])+dx) < EPS) & (np.abs(vert(seg_directs[:,1])+dy) < EPS))
-    
-    
+
+
 def compute_intersections(pt, directions, segments):
     '''
     Compute all intersection points in each direction.
-    
+
     Args:
         origin (tuple): x, y coordinates
         directions (mx2 numpy array): normalized directions
-        segments (nx4 numpy array): segments are represented by (x1, y1, x2, y2), 
+        segments (nx4 numpy array): segments are represented by (x1, y1, x2, y2),
             where (x1, y1) and (x2, y2) are the end points
-    
+
     Returns:
-        valid (nxm numpy array): valid[i,j] is True if intersection between segment 
+        valid (nxm numpy array): valid[i,j] is True if intersection between segment
             i and direction j is valid
         intersections (nxmx2 numpy array): intersections[i,j,:] is the intersection point
             between segment i and direction j
@@ -194,7 +194,7 @@ def compute_intersections(pt, directions, segments):
     r[:,use_x] = ((x1 + s * vert(x2 - x1) - px) / ctheta)[:,use_x]
     intersections = make_3d_vecs(px + r * ctheta, py + r * stheta)
     valid = np.repeat(True, n * angles_n).reshape(n, angles_n)
-    
+
     # Check for parallel cases
     seg_directs = make_vecs(segments[:,2] - segments[:,0], segments[:,3] - segments[:,1])
     parallel_directs = are_parallel(seg_directs, directions)
@@ -214,14 +214,14 @@ def compute_intersections(pt, directions, segments):
     collinear_p2 = (~not_collinear) & vert(norms_between1 >= norms_between2)
     intersections[parallel_directs & collinear_p1,:] = p1[parallel_directs & collinear_p1,:]
     intersections[parallel_directs & collinear_p2,:] = p2[parallel_directs & collinear_p2,:]
-    
+
     # Check validity
     not_valid = (np.abs(denom) < EPS) | (r < -EPS) | (s < -EPS) | (s > 1+EPS)
     valid[(~parallel_directs) & not_valid] = False
 
     return valid, intersections
 
-        
+
 
 
 
@@ -552,8 +552,8 @@ def make_directions(particle, angles):
     absolute_angles = [particle.theta + angle for angle in angles]
     normed = np.array([(math.cos(a), math.sin(a)) for a in absolute_angles])
     return normed
-    
-    
+
+
 
 
 def nb_lidar_old(particle, angles):
@@ -567,8 +567,11 @@ def nb_lidar(particle, angles, lines = lines):
     interpoints = closest_intersections(origin, directions, lines)
     dists = []
     for p in interpoints:
-      dist = math.sqrt((p[0]-origin[0])**2 + (p[1] - origin[1])**2)
-      dists.append(dist)
+        if p is None:
+            dist = float('inf')
+        else:
+            dist = math.sqrt((p[0]-origin[0])**2 + (p[1] - origin[1])**2)
+        dists.append(dist)
     readings= dict(zip(angles, dists))
     return readings
 
@@ -576,16 +579,16 @@ def nb_lidar(particle, angles, lines = lines):
 def closest_intersections(origin, directions, segments):
     '''
     Find closest intersection point in each direction.
-    
+
     Args:
         origin (tuple): x, y coordinates
         directions (mx2 numpy array): normalized directions
-        segments (nx4 numpy array): segments are represented by (x1, y1, x2, y2), 
+        segments (nx4 numpy array): segments are represented by (x1, y1, x2, y2),
             where (x1, y1) and (x2, y2) are the end points
-    
+
     Returns:
-        closest (list): the returned list has one element for each direction. 
-            The element is the closest intersection point in that direction. 
+        closest (list): the returned list has one element for each direction.
+            The element is the closest intersection point in that direction.
             If there is not intersection in that direction, the element is None.
     '''
     valid, intersections = compute_intersections(origin, directions, segments)
@@ -600,7 +603,7 @@ def closest_intersections(origin, directions, segments):
         closest.append(valid_intersections[np.argmin(dsq),:])
     return closest
 
- 
+
 def nb_simulate_lidar_desenha(particle, angles):
     """
         Computes the closes intersection in evey given direction
@@ -609,15 +612,15 @@ def nb_simulate_lidar_desenha(particle, angles):
     # inefficient, since we're redoing this
     results = nb_lidar(particle, angles, lines)
     angles_result = sorted(results.keys())
-    
+
     imagem_saida = np.copy(color_image)
-    
+
     for r in angles_result:
         cv2.line(imagem_saida, (int(particle.x), int(particle.y)), (int(particle.x + math.cos(r+particle.theta)*results[r]), int(particle.y + math.sin(r+particle.theta)*results[r])), (0,0,0),1, lineType=cv2.LINE_AA)
 
     return results, imagem_saida
 
-    
+
 
 
 def nb_simulate_lidar_fast(robot_pose, angles, img, retorno = None, output_image=True):
