@@ -1,6 +1,5 @@
 import math
 import bisect
-import attr
 import numpy as np
 
 from math_utils import EPS, dist_sq, my_atan2
@@ -162,7 +161,6 @@ def intersect_segments(n1, n2):
         return create_intersecting_segments(pts2, pts1, segs2, segs1, angles, ref)
 
 
-@attr.s
 class VisibleSegments:
     """Data structure that keeps an updated list that contains only the
     Segments that are visible from ref.
@@ -172,8 +170,13 @@ class VisibleSegments:
         segments (list[Segment]): list with all Segments that are visible from
             ref
     """
-    _ref = attr.ib(default=attr.Factory(lambda: np.array([0, 0])))
-    segments = attr.ib(default=attr.Factory(list))
+    def __init__(self, ref=None, segments=None):
+        self._ref = ref
+        if self._ref is None:
+            self._ref = np.array([0, 0])
+        self.segments = segments
+        if self.segments is None:
+            self.segments = []
 
     def add_segments(self, segments):
         """Add list of segments at once.

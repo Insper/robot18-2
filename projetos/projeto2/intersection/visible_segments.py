@@ -1,6 +1,5 @@
 import math
 import bisect
-import attr
 import numpy as np
 
 from .math_utils import EPS, EPS_SQ, THETA_EPS, dist_sq, my_atan2

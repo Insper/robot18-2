@@ -1,12 +1,10 @@
 import math
 import random
-import attr
 import numpy as np
 
 from .math_utils import EPS, THETA_EPS, my_atan2, dist, dist_sq
 
 
-@attr.s(cmp=False)
 class Segment(object):
     """Line segment.
 
@@ -20,11 +18,14 @@ class Segment(object):
         ref (list): reference point to be used by the algorithm
     """
 
-    p1 = attr.ib()
-    p2 = attr.ib()
-    _theta1 = attr.ib(default=None)
-    _theta2 = attr.ib(default=None)
-    _ref = attr.ib(default=attr.Factory(lambda: [0, 0]))
+    def __init__(self, p1, p2, theta1=None, theta2=None, ref=None):
+        self.p1 = p1
+        self.p2 = p2
+        self._theta1 = theta1
+        self._theta2 = theta2
+        self._ref = ref
+        if self._ref is None:
+            self._ref = np.array([0, 0])
 
     @property
     def theta1(self):
