@@ -3,7 +3,7 @@
 
 """ Classes do filtro de particulas
 
-    Adaptado do código de Olin/Paul Ruvolo. Source: https://github.com/paulruvolo/robot_localization_2017/blob/master/my_localizer/scripts/pf.py 
+    Adaptado do código de Olin/Paul Ruvolo. Source: https://github.com/paulruvolo/robot_localization_2017/blob/master/my_localizer/scripts/pf.py
 
 """
 
@@ -23,7 +23,7 @@ class Particle(object):
             y: coordenada y no sistema de coordenadas do mapa
             theta: ângulo do robô em relação ao sistema de coordenadas do mapa
             w: P(H_i) para a partícula
-    """ 
+    """
 
     def __init__(self,x=0.0,y=0.0,theta=0.0,w=1.0):
         """ Constrói uma nova partícula
@@ -43,19 +43,19 @@ class Particle(object):
             Útil quando vamos fazer a probabilidade de todas as partículas somar 1
             """
         self.w /= Z
-        
+
     def pose(self):
         """
             Retorna uma lista com o x, y, theta da particula
         """
         return [self.x, self.y, self.theta]
-    
+
     def x_y(self):
         """
             Retorna apenas as componentes x, y da pose
         """
         return (self.x, self.y)
-    
+
 
     def pose_prob(self):
         """
@@ -64,7 +64,7 @@ class Particle(object):
         l = self.pose()
         l.append(self.w)
         return l
-    
+
     def set_pose(self,pose):
         """
             Inicializa x, y e theta com uma lista de 3 numeros recebida
@@ -72,7 +72,7 @@ class Particle(object):
         self.x = pose[0]
         self.y = pose[1]
         self.theta = pose[2]
-        
+
     def set_pose_prob(self, pose_prob):
         """
             Recebe uma lista com [x,y,theta, w] e guarda estes valores
@@ -84,7 +84,7 @@ class Particle(object):
         """
             Permite que as particulas sejam acessadas como uma lista de 4 valores
         """
-        
+
         if index == 0:
             return self.x
         elif index == 1:
@@ -93,10 +93,10 @@ class Particle(object):
             return self.theta
         elif index==3:
             return self.w
-                        
+
     def __setitem__(self, index, value):
         """
-            Permite a sintaxe p[numero] = valor para cada particula, 
+            Permite a sintaxe p[numero] = valor para cada particula,
             em que 0,1,2,3 são x,y,theta e w, respectivamente
         """
         if index == 0:
@@ -107,7 +107,7 @@ class Particle(object):
             self.theta = value
         elif index==3:
             self.w = value
-            
+
     def move(self, movimento):
         """
             Desloca a particula recebendo um array de movimento x, y, theta
@@ -115,7 +115,7 @@ class Particle(object):
         self.x += movimento[0]
         self.y += movimento[1]
         self.theta += movimento[2]
-        
+
     def move_linear(self, desl):
         """
             Realiza um deslocamento relativo de magnitude desl no sentido
@@ -123,16 +123,16 @@ class Particle(object):
         """
         self.x = self.x + math.cos(self.theta)*desl
         self.y = self.y + math.sin(self.theta)*desl # Edit- (-) sign for pygame
-        
+
     def move_relative(self, speed):
         """
             speed[0] is a linear speed
             speed[1] is an angular speed
         """
-        self.move_angular(speed[1])        
+        self.move_angular(speed[1])
         self.move_linear(speed[0])
-        
-  
+
+
     def move_angular(self, ang):
         """
             Realiza um deslocamento angular de magnitude ang
@@ -157,18 +157,18 @@ def create_particles(pose, var_x = 50, var_y = 50, var_theta = math.pi/3, num=10
 
 
 def draw_random_sample(choices, probabilities, n):
-    """ 
-        Devolve uma amostra aleatória de n elementos retirada do conjunto choices em que cada 
+    """
+        Devolve uma amostra aleatória de n elementos retirada do conjunto choices em que cada
         elemento tem uma probabilidade diferente de ser escolhido. As probabilidades
         estão na lista probabilities
-        
+
         choices: lista de valores a amostrar
         probabilities: lista das probabilidades de cada valor
         n: número de amostras desejadas na lista resultado
     """
     if np.any(np.isnan(probabilities)):
         message = """\n\nIMPOSSÍVEL calcular com valor de probabilidade NaN - Not a number presentes na lista \n
-        DICA: se estiver obtendo probabilidades muito pequenas \n 
+        DICA: se estiver obtendo probabilidades muito pequenas \n
         Cheque se suas contas estão certas, lembre-se de que a produtória \n
         da fórmula se aplica apenas aos lasers de cada partícula \n
         Caso precise mesmo representar valores menores que  {0} \n
@@ -182,6 +182,8 @@ def draw_random_sample(choices, probabilities, n):
     values = np.array(range(len(choices)))
     probs = np.array(probabilities)
     bins = np.add.accumulate(probs)
+    if bins[-1] < 1:
+        bins[-1] = 1
     inds = values[np.digitize(random_sample(n), bins)]
     samples = []
     for i in inds:
